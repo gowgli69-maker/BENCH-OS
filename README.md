@@ -4,11 +4,9 @@ A tiny operating system that runs in your web browser, built with plain HTML, CS
 
 ## Demo
 
-**Try it here:** https://YOUR-LINK-HERE
+**Try it here:** gowgli69-maker.github.io/BENCH-OS/
 
 No login or password needed. Anyone can open it and test it.
-
-![BenchOS screenshot](screenshot.png)
 
 ## Features
 
