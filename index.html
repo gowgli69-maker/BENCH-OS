@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BenchOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Hanken+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board:#0f2a22; --board2:#0b1f19; --board3:#133a2e;
+  --accent:#e0a05a; --silk:#eef3e6; --dim:#9db3a6; --tb:46px;
+  --head:'Chakra Petch',system-ui,sans-serif;
+  --body:'Hanken Grotesk',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--board2);color:var(--silk);font-family:var(--body);font-size:15px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* desktop: solder-mask board with via dots and faint trace grid */
+#desktop{position:absolute;inset:0;
+  background:
+    radial-gradient(circle at center, var(--accent) 0 1.6px, transparent 2.2px) 0 0/48px 48px,
+    linear-gradient(rgba(224,160,90,.07) 1px,transparent 1px) 0 0/48px 48px,
+    linear-gradient(90deg,rgba(224,160,90,.07) 1px,transparent 1px) 0 0/48px 48px,
+    radial-gradient(120% 90% at 20% 10%, var(--board3), var(--board) 55%, var(--board2));
+  background-blend-mode:normal}
+#desktop::before{opacity:.35}
+.stamp{position:absolute;right:28px;bottom:calc(var(--tb) + 22px);text-align:right;font-family:var(--head);font-weight:700;
+  font-size:clamp(34px,7vw,84px);line-height:.95;color:rgba(238,243,230,.10);pointer-events:none;user-select:none}
+.stamp small{display:block;font-size:.2em;letter-spacing:.08em;color:rgba(238,243,230,.22);margin-top:8px}
+
+#icons{position:absolute;left:18px;top:18px;display:grid;gap:6px;grid-auto-flow:row}
+.icon{width:92px;padding:10px 6px;background:none;border:1px solid transparent;border-radius:6px;display:grid;justify-items:center;gap:6px;text-align:center}
+.icon:hover,.icon:focus-visible{background:rgba(238,243,230,.07);border-color:rgba(224,160,90,.45)}
+.icon svg{width:34px;height:34px;color:var(--accent)}
+.icon span{font-size:13px}
+
+#windows{position:absolute;inset:0 0 var(--tb) 0;pointer-events:none}
+.win{position:absolute;pointer-events:auto;display:flex;flex-direction:column;min-width:260px;min-height:160px;
+  background:var(--board3);border:1px solid rgba(224,160,90,.55);border-radius:8px;overflow:hidden;resize:both;
+  box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.win.active{border-color:var(--accent);box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 0 1px var(--accent)}
+.win.hide{display:none}
+.win.max{left:0!important;top:0!important;width:100%!important;height:100%!important;border-radius:0;resize:none}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 10px;background:var(--board2);
+  border-bottom:1px solid rgba(224,160,90,.35);cursor:grab;touch-action:none;user-select:none}
+.bar:active{cursor:grabbing}
+.ttl{display:flex;align-items:center;gap:8px;font-family:var(--head);font-weight:700;font-size:14px}
+.ttl svg{width:16px;height:16px;color:var(--accent)}
+.ctl{display:flex;gap:8px}
+.ctl button{width:16px;height:16px;border-radius:50%;border:2px solid var(--accent);background:transparent;padding:0;position:relative}
+.ctl button:hover{background:var(--accent)}
+.ctl button[data-a=close]:hover{background:#ef6f6c;border-color:#ef6f6c}
+.body{flex:1;overflow:auto;padding:16px}
+
+/* taskbar */
+#taskbar{position:absolute;left:0;right:0;bottom:0;height:var(--tb);display:flex;align-items:center;gap:8px;padding:0 10px;
+  background:var(--board2);border-top:1px solid var(--accent);z-index:99999}
+#start{font-family:var(--head);font-weight:700;background:var(--accent);color:#1b1206;border:0;border-radius:6px;padding:7px 14px}
+#tasks{flex:1;display:flex;gap:6px;overflow:hidden}
+.task{background:rgba(238,243,230,.06);border:1px solid rgba(238,243,230,.15);border-radius:6px;padding:5px 12px;font-size:13px;white-space:nowrap}
+.task.active{border-color:var(--accent);background:rgba(224,160,90,.18)}
+#clock{font-family:var(--head);font-size:14px;color:var(--dim);padding-left:8px}
+#menu{position:absolute;left:10px;bottom:calc(var(--tb) + 8px);background:var(--board2);border:1px solid var(--accent);border-radius:8px;
+  padding:6px;display:none;min-width:200px;z-index:99999}
+#menu.open{display:block}
+#menu button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:9px 10px;border-radius:5px;text-align:left}
+#menu button:hover{background:rgba(224,160,90,.18)}
+#menu svg{width:18px;height:18px;color:var(--accent)}
+
+/* app content */
+h2{font-family:var(--head);margin:0 0 6px;font-size:22px}
+p{line-height:1.55;margin:0 0 10px;color:var(--silk)}
+.dim{color:var(--dim)}
+.card{border:1px solid rgba(224,160,90,.35);border-radius:6px;padding:12px 14px;margin-bottom:10px;background:rgba(0,0,0,.18)}
+.card b{font-family:var(--head);font-size:16px}
+.tag{display:inline-block;font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:1px 9px;margin-left:8px}
+textarea{width:100%;height:100%;min-height:180px;resize:none;background:rgba(0,0,0,.25);color:var(--silk);border:1px solid rgba(224,160,90,.35);border-radius:6px;padding:12px;font:inherit;line-height:1.5}
+.term{display:flex;flex-direction:column;height:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px}
+.term .out{flex:1;overflow:auto;white-space:pre-wrap;color:#cfe8d6}
+.term .line{display:flex;gap:8px;margin-top:8px;color:var(--accent)}
+.term input{flex:1;background:none;border:0;color:var(--silk);font:inherit;outline:none}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.row label{display:grid;gap:4px;font-size:13px;color:var(--dim)}
+select{background:var(--board2);color:var(--silk);border:1px solid var(--accent);border-radius:5px;padding:6px 8px;font:inherit}
+.big{font-family:var(--head);font-size:34px;font-weight:700;color:var(--accent)}
+.sw{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 16px}
+.sw button{width:42px;height:42px;border-radius:50%;border:3px solid transparent}
+.sw button.on{border-color:var(--silk)}
+.btn{background:var(--accent);color:#1b1206;border:0;border-radius:6px;padding:8px 14px;font-weight:600}
+@media (max-width:700px){#icons{grid-template-columns:repeat(3,92px)}}
+@media (prefers-reduced-motion:no-preference){.win{animation:pop .14s ease-out}@keyframes pop{from{transform:scale(.97);opacity:.4}}}
+</style>
+</head>
+<body>
+<div id="desktop">
+  <div id="icons"></div>
+  <div class="stamp" aria-hidden="true">BenchOS<small>rev A, built at home</small></div>
+</div>
+<div id="windows"></div>
+<div id="menu"></div>
+<div id="taskbar">
+  <button id="start">Bench</button>
+  <div id="tasks"></div>
+  <div id="clock"></div>
+</div>
+
+<script>
+/* ======== EDIT THESE TO MAKE IT YOURS ======== */
+const OWNER = "Giridhar";
+const PROJECTS = [
+  {name:"RAPTOR", tag:"computer vision", text:"Spots traffic offences in real time using YOLOv8 and OpenCV."},
+  {name:"TTOR", tag:"arduino", text:"Train Track Obstacle Remover: a system that clears debris from railway tracks."},
+  {name:"Triboelectric study", tag:"ISEF research", text:"Research on how an object's contact history changes the charge it picks up."},
+  {name:"JARVIS", tag:"python", text:"Modular desktop AI assistant where you can swap the AI behind it."},
+  {name:"Hackpad", tag:"hardware", text:"A 3-key macro pad with a custom case designed in Fusion 360."}
+];
+/* ============================================ */
+
+const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const ACCENTS={Copper:"#e0a05a",Cyan:"#4fd1c5",Magenta:"#e86bb4",Lime:"#b5e04a"};
+const BOARDS={Forest:["#0f2a22","#0b1f19","#133a2e"],Midnight:["#10172b","#0a1020","#16203d"],Oxblood:["#2a1218","#1e0c11","#3a1822"],Slate:["#1d2326","#14191b","#283136"]};
+function applyTheme(){
+  const a=store.get("bench.accent","Copper"), b=store.get("bench.board","Forest");
+  const r=document.documentElement.style;
+  r.setProperty("--accent",ACCENTS[a]||ACCENTS.Copper);
+  const bb=BOARDS[b]||BOARDS.Forest;
+  r.setProperty("--board",bb[0]);r.setProperty("--board2",bb[1]);r.setProperty("--board3",bb[2]);
+}
+applyTheme();
+
+const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ICON={
+  projects:svg('<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/>'),
+  notes:svg('<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7"/>'),
+  terminal:svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/>'),
+  resistor:svg('<path d="M2 12h4l2-5 3 10 3-10 2 5h6"/>'),
+  settings:svg('<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'),
+  about:svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>')
+};
+
+/* ---------- apps ---------- */
+const APPS={
+  about:{title:"Welcome",w:420,h:300,render(b){
+    b.innerHTML=`<h2>Hi, I'm ${OWNER}.</h2>
+    <p>This is BenchOS, a tiny operating system that lives in your browser. I build hardware, embedded systems and computer vision projects from my home lab.</p>
+    <p class="dim">Drag windows by their title bar, resize from the bottom-right corner, and open apps from the desktop or the Bench menu. Try the Resistor Lab and the Terminal.</p>`}},
+  projects:{title:"Projects",w:460,h:420,render(b){
+    b.innerHTML=`<h2>What I'm building</h2>`+PROJECTS.map(p=>`<div class="card"><b>${p.name}</b><span class="tag">${p.tag}</span><p class="dim" style="margin:6px 0 0">${p.text}</p></div>`).join("");}},
+  notes:{title:"Notes",w:400,h:320,render(b){
+    b.innerHTML=`<textarea aria-label="Notes" placeholder="Type here. Your notes save automatically in this browser."></textarea>`;
+    const t=b.querySelector("textarea");t.value=store.get("bench.notes","");
+    t.addEventListener("input",()=>store.set("bench.notes",t.value));}},
+  resistor:{title:"Resistor Lab",w:440,h:430,render(b){
+    const C=[["black","#111",0],["brown","#7b4a24",1],["red","#d93a2e",2],["orange","#f08a24",3],["yellow","#f0d324",4],["green","#2e9e4f",5],["blue","#2f6fd6",6],["violet","#8a4fd6",7],["grey","#8b8f93",8],["white","#f2f2f2",9]];
+    const M=[...C.map(c=>[c[0],c[1],Math.pow(10,c[2])]),["gold","#d4af37",0.1],["silver","#c0c0c0",0.01]];
+    const T=[["brown","#7b4a24",1],["red","#d93a2e",2],["gold","#d4af37",5],["silver","#c0c0c0",10]];
+    const sel=(id,l,arr,def)=>`<label>${l}<select id="${id}">${arr.map((c,i)=>`<option value="${i}" ${i===def?"selected":""}>${c[0]}</option>`).join("")}</select></label>`;
+    b.innerHTML=`<h2>Resistor color decoder</h2><p class="dim">Pick the four bands and read the value.</p>
+    <svg viewBox="0 0 260 70" style="width:100%;max-width:360px"><line x1="5" y1="35" x2="60" y2="35" stroke="#ccc" stroke-width="4"/><line x1="200" y1="35" x2="255" y2="35" stroke="#ccc" stroke-width="4"/>
+    <rect x="55" y="14" width="150" height="42" rx="18" fill="#c9a66b"/>
+    <rect id="b1" x="82" y="14" width="13" height="42"/><rect id="b2" x="108" y="14" width="13" height="42"/><rect id="b3" x="134" y="14" width="13" height="42"/><rect id="b4" x="175" y="14" width="13" height="42"/></svg>
+    <div class="row">${sel("s1","Band 1",C,1)}${sel("s2","Band 2",C,0)}${sel("s3","Multiplier",M,2)}${sel("s4","Tolerance",T,2)}</div>
+    <div class="big" id="val"></div>`;
+    const g=id=>b.querySelector("#"+id);
+    function upd(){
+      const a=C[+g("s1").value],c=C[+g("s2").value],m=M[+g("s3").value],t=T[+g("s4").value];
+      g("b1").setAttribute("fill",a[1]);g("b2").setAttribute("fill",c[1]);g("b3").setAttribute("fill",m[1]);g("b4").setAttribute("fill",t[1]);
+      const ohms=(a[2]*10+c[2])*m[2];
+      let s=ohms>=1e6?(ohms/1e6)+" MΩ":ohms>=1e3?(ohms/1e3)+" kΩ":(+ohms.toFixed(2))+" Ω";
+      g("val").textContent=s+"  ±"+t[2]+"%";
+    }
+    b.querySelectorAll("select").forEach(s=>s.addEventListener("change",upd));upd();}},
+  settings:{title:"Settings",w:400,h:360,render(b){
+    function draw(){
+      const a=store.get("bench.accent","Copper"),bd=store.get("bench.board","Forest");
+      b.innerHTML=`<h2>Look and feel</h2><p class="dim">Accent color</p><div class="sw">${Object.entries(ACCENTS).map(([n,c])=>`<button data-k="accent" data-v="${n}" title="${n}" aria-label="${n}" class="${a===n?"on":""}" style="background:${c}"></button>`).join("")}</div>
+      <p class="dim">Board color</p><div class="sw">${Object.entries(BOARDS).map(([n,c])=>`<button data-k="board" data-v="${n}" title="${n}" aria-label="${n}" class="${bd===n?"on":""}" style="background:${c[2]}"></button>`).join("")}</div>
+      <button class="btn" id="rst">Reset everything</button>`;
+      b.querySelectorAll(".sw button").forEach(x=>x.onclick=()=>{store.set("bench."+x.dataset.k,x.dataset.v);applyTheme();draw()});
+      b.querySelector("#rst").onclick=()=>{["bench.accent","bench.board","bench.notes"].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});applyTheme();draw()};
+    }
+    draw();}},
+  terminal:{title:"Terminal",w:520,h:340,render(b){
+    b.innerHTML=`<div class="term"><div class="out"></div><div class="line"><span>bench&gt;</span><input spellcheck="false" autocomplete="off" aria-label="Terminal input"></div></div>`;
+    const out=b.querySelector(".out"),inp=b.querySelector("input"),hist=[];let hi=0;
+    const print=t=>{const d=document.createElement("div");d.textContent=t;out.appendChild(d);out.scrollTop=out.scrollHeight};
+    print("BenchOS terminal. Type help to see what it can do.");
+    function run(v){
+      const [c,...a]=v.split(/\s+/);
+      switch(c.toLowerCase()){
+        case "help":print("help, ls, open <app>, about, projects, date, ohm <volts> <ohms>, theme <name>, clear");break;
+        case "ls":print(Object.keys(APPS).join("   "));break;
+        case "open":if(APPS[a[0]]){openApp(a[0]);print("opened "+a[0])}else print("no app named '"+(a[0]||"")+"'. Try ls.");break;
+        case "about":case "whoami":print(OWNER+": hardware tinkerer, embedded + vision.");break;
+        case "projects":PROJECTS.forEach(p=>print("- "+p.name+": "+p.text));break;
+        case "date":print(new Date().toString());break;
+        case "ohm":{const V=parseFloat(a[0]),R=parseFloat(a[1]);if(!(V>=0)||!(R>0)){print("usage: ohm 5 220");break}
+          const I=V/R;print(`I = ${(I*1000).toFixed(2)} mA   P = ${(V*I*1000).toFixed(2)} mW`);break}
+        case "theme":{const n=Object.keys(BOARDS).find(k=>k.toLowerCase()===(a[0]||"").toLowerCase());
+          if(n){store.set("bench.board",n);applyTheme();print("board set to "+n)}else print("themes: "+Object.keys(BOARDS).join(", "));break}
+        case "clear":out.innerHTML="";break;
+        default:print("unknown command: "+c+". Type help.");
+      }
+    }
+    inp.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){const v=inp.value.trim();inp.value="";if(!v)return;hist.push(v);hi=hist.length;print("bench> "+v);run(v)}
+      else if(e.key==="ArrowUp"){if(hi>0){hi--;inp.value=hist[hi]}e.preventDefault()}
+      else if(e.key==="ArrowDown"){if(hi<hist.length-1){hi++;inp.value=hist[hi]}else{hi=hist.length;inp.value=""}e.preventDefault()}
+    });
+    b.addEventListener("click",()=>inp.focus());
+    setTimeout(()=>inp.focus(),50);}}
+};
+
+/* ---------- window manager ---------- */
+const wins={};let z=10,count=0;
+const $=s=>document.querySelector(s);
+function focusWin(id){
+  Object.keys(wins).forEach(k=>{wins[k].el.classList.toggle("active",k===id);wins[k].btn.classList.toggle("active",k===id&&!wins[k].el.classList.contains("hide"))});
+  if(wins[id]){wins[id].el.style.zIndex=++z}
+}
+function openApp(id){
+  $("#menu").classList.remove("open");
+  if(wins[id]){wins[id].el.classList.remove("hide");focusWin(id);return}
+  const a=APPS[id],el=document.createElement("div");el.className="win";
+  el.innerHTML=`<div class="bar"><span class="ttl">${ICON[id]||""}${a.title}</span><span class="ctl"><button data-a="min" aria-label="Minimize"></button><button data-a="max" aria-label="Maximize"></button><button data-a="close" aria-label="Close"></button></span></div><div class="body"></div>`;
+  const W=Math.min(a.w,innerWidth-20),H=Math.min(a.h,innerHeight-var_tb()-20),n=count++%7;
+  el.style.width=W+"px";el.style.height=H+"px";
+  el.style.left=Math.max(10,Math.min(130+n*30,innerWidth-W-10))+"px";
+  el.style.top=Math.max(10,Math.min(40+n*30,innerHeight-var_tb()-H-10))+"px";
+  $("#windows").appendChild(el);
+  a.render(el.querySelector(".body"));
+  const btn=document.createElement("button");btn.className="task";btn.textContent=a.title;
+  btn.onclick=()=>{const w=wins[id];if(w.el.classList.contains("hide")){w.el.classList.remove("hide");focusWin(id)}else if(w.el.classList.contains("active")){w.el.classList.add("hide");focusWin(null)}else focusWin(id)};
+  $("#tasks").appendChild(btn);
+  wins[id]={el,btn};
+  if(innerWidth<700)el.classList.add("max");
+  el.addEventListener("pointerdown",()=>focusWin(id));
+  el.querySelector(".ctl").addEventListener("click",e=>{
+    const t=e.target.closest("button");if(!t)return;
+    if(t.dataset.a==="close"){el.remove();btn.remove();delete wins[id]}
+    else if(t.dataset.a==="min"){el.classList.add("hide");focusWin(null)}
+    else el.classList.toggle("max");
+  });
+  const bar=el.querySelector(".bar");
+  bar.addEventListener("dblclick",e=>{if(!e.target.closest("button"))el.classList.toggle("max")});
+  bar.addEventListener("pointerdown",e=>{
+    if(e.target.closest("button")||el.classList.contains("max"))return;
+    const sx=e.clientX-el.offsetLeft,sy=e.clientY-el.offsetTop;
+    bar.setPointerCapture(e.pointerId);
+    const mv=ev=>{
+      el.style.left=Math.min(Math.max(ev.clientX-sx,-el.offsetWidth+90),innerWidth-90)+"px";
+      el.style.top=Math.max(0,Math.min(ev.clientY-sy,innerHeight-var_tb()-40))+"px";
+    };
+    const up=()=>{bar.removeEventListener("pointermove",mv);bar.removeEventListener("pointerup",up)};
+    bar.addEventListener("pointermove",mv);bar.addEventListener("pointerup",up);
+  });
+  focusWin(id);
+}
+function var_tb(){return 46}
+
+/* ---------- desktop, menu, clock ---------- */
+const ORDER=["projects","notes","terminal","resistor","settings","about"];
+$("#icons").innerHTML=ORDER.map(id=>`<button class="icon" data-id="${id}">${ICON[id]}<span>${APPS[id].title}</span></button>`).join("");
+$("#menu").innerHTML=ORDER.map(id=>`<button data-id="${id}">${ICON[id]}${APPS[id].title}</button>`).join("");
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-id]");
+  if(b&&(b.closest("#icons")||b.closest("#menu")))openApp(b.dataset.id);
+  else if(e.target.closest("#start"))$("#menu").classList.toggle("open");
+  else if(!e.target.closest("#menu"))$("#menu").classList.remove("open");
+});
+function tick(){$("#clock").textContent=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+tick();setInterval(tick,15000);
+openApp("about");
+</script>
+</body>
+</html>
