@@ -46,3 +46,5 @@ These features were not in the workshop guide:
 ## Made by
 
 Giridhar, for the Stardance WebOS 1 workshop.
+## credits
+ This was the first time me designing a web os.Also I am new to HTML.So I used Claude to help me learn things in HTML which contributed to this awesome BENCH OS
